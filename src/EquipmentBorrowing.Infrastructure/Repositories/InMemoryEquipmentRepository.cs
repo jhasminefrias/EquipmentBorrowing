@@ -23,3 +23,9 @@ public sealed class InMemoryEquipmentRepository : IEquipmentRepository
         return Task.CompletedTask;
     }
 }
+
+public Task<IReadOnlyList<Equipment>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Equipment> snapshot = _equipment.ToList();
+        return Task.FromResult(snapshot);
+    }
