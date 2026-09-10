@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:EquipmentBorrowing.Desktop.ViewModels"
+             x:Class="EquipmentBorrowing.Desktop.Views.EquipmentView"
+             x:DataType="vm:EquipmentViewModel">
+
+    <Grid RowDefinitions="Auto,*">
+        <TextBlock Grid.Row="0" Text="Equipment" FontSize="16" FontWeight="Bold" Margin="0,0,0,8" />
+
+        <ListBox Grid.Row="1"
+                 ItemsSource="{Binding EquipmentItems}"
+                 SelectedItem="{Binding SelectedEquipment}">
+            <ListBox.ItemTemplate>
+                <DataTemplate DataType="vm:EquipmentViewModel">
+                    <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="6">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <TextBlock Grid.Column="0" Text="{Binding AssetTag}" Width="100" />
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" />
+                            <TextBlock Grid.Column="2">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0}">
+                                        <Binding Path="IsAvailable" Converter="{x:Static BoolConverters.Or}" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
+</UserControl>
