@@ -18,14 +18,14 @@ public sealed class InMemoryEquipmentRepository : IEquipmentRepository
         return Task.FromResult(item);
     }
 
+    public Task<IReadOnlyList<Equipment>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Equipment> snapshot = _equipment.ToList();
+        return Task.FromResult(snapshot);
+    }
+
     public Task UpdateAsync(Equipment equipment, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 }
-
-public Task<IReadOnlyList<Equipment>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        IReadOnlyList<Equipment> snapshot = _equipment.ToList();
-        return Task.FromResult(snapshot);
-    }
