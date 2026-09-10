@@ -25,6 +25,8 @@ var service = new BorrowEquipmentService(
 
 DateOnly today = DateOnly.FromDateTime(DateTime.Today);
 
+var returnService = new ReturnEquipmentService(borrowingRepository, equipmentRepository);
+
 await RunDemoAsync(
     "Successful case: allowed student borrows available equipment",
     new BorrowEquipmentRequest(1, 1, today, today.AddDays(7)));
@@ -36,6 +38,19 @@ await RunDemoAsync(
 await RunDemoAsync(
     "Failure case: student is not allowed to borrow",
     new BorrowEquipmentRequest(2, 1, today, today.AddDays(7)));
+
+// Return Equipment Demonstrations
+await RunReturnDemoAsync(
+    "Successful case: student returns borrowed equipment",
+    new ReturnEquipmentRequest(1, today.AddDays(2)));
+
+await RunReturnDemoAsync(
+    "Failure case: returning already returned borrowing",
+    new ReturnEquipmentRequest(1, today.AddDays(3)));
+
+await RunReturnDemoAsync(
+    "Failure case: borrowing record not found",
+    new ReturnEquipmentRequest(999, today));
 
 async Task RunDemoAsync(string title, BorrowEquipmentRequest request)
 {
@@ -50,6 +65,24 @@ async Task RunDemoAsync(string title, BorrowEquipmentRequest request)
         Console.WriteLine($"Student Id: {result.Borrowing.StudentId}");
         Console.WriteLine($"Equipment Id: {result.Borrowing.EquipmentId}");
         Console.WriteLine($"Expected Return: {result.Borrowing.ExpectedReturnDate}");
+    }
+
+    Console.WriteLine();
+}
+
+async Task RunReturnDemoAsync(string title, ReturnEquipmentRequest request)
+{
+    Console.WriteLine(title);
+
+    ReturnEquipmentResult result = await returnService.ReturnAsync(request);
+    Console.WriteLine(result.Succeeded ? "Result: Success" : "Result: Failed");
+    Console.WriteLine($"Message: {result.Message}");
+
+    if (result.Borrowing is not null)
+    {
+        Console.WriteLine($"Borrowing Id: {result.Borrowing.Id}");
+        Console.WriteLine($"Status: {result.Borrowing.Status}");
+        Console.WriteLine($"Date Returned: {result.Borrowing.DateReturned}");
     }
 
     Console.WriteLine();
