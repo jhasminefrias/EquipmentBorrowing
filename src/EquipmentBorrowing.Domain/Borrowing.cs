@@ -17,7 +17,7 @@ public sealed class Borrowing
         Status = BorrowingStatus.Active;
     }
 
-    public int Id { get; }
+    public int Id { get; set; }
 
     public int StudentId { get; }
 

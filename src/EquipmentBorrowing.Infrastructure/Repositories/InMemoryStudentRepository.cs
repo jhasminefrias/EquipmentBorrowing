@@ -17,4 +17,10 @@ public sealed class InMemoryStudentRepository : IStudentRepository
         Student? student = _students.SingleOrDefault(student => student.Id == id);
         return Task.FromResult(student);
     }
+
+    public Task<IReadOnlyList<Student>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Student> list = _students.ToList();
+        return Task.FromResult(list);
+    }
 }
