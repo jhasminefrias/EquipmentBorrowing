@@ -8,49 +8,23 @@
         MinWidth="800" MinHeight="500"
         WindowStartupLocation="CenterScreen">
 
-    <Grid RowDefinitions="Auto,*" Background="#F4F6F8">
-        <!-- Top App Bar -->
-        <Border Grid.Row="0" Background="#1E293B" Padding="20,14">
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <TextBlock Text="Campus Equipment Borrowing System"
-                               FontSize="18"
-                               FontWeight="Bold"
-                               Foreground="White"
-                               VerticalAlignment="Center" />
-                </StackPanel>
-                <TextBlock Grid.Column="1"
-                           Text="ITSD 81 Laboratory Activity 2"
-                           FontSize="12"
-                           Foreground="#94A3B8"
-                           VerticalAlignment="Center" />
-            </Grid>
-        </Border>
+	<Grid ColumnDefinitions="200,*">
+		<!-- Sidebar Navigation -->
+		<StackPanel Grid.Column="0" Margin="12" Spacing="8">
+			<TextBlock Text="Navigation" FontWeight="Bold" Margin="4,0,0,8" />
 
-        <!-- Main Workspace -->
-        <Grid Grid.Row="1" ColumnDefinitions="220,*">
-            <!-- Sidebar Navigation -->
-            <Border Grid.Column="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0" Padding="14">
-                <StackPanel Spacing="8">
-                    <TextBlock Text="NAVIGATION"
-                               FontSize="11"
-                               FontWeight="Bold"
-                               Foreground="#64748B"
-                               Margin="6,4,0,8" />
+			<Button Content="Equipment Directory"
+                    Command="{Binding ShowEquipmentCommand}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left" />
 
-                    <Button Content="📦  Equipment Directory"
-                            Classes="nav"
-                            Command="{Binding ShowEquipmentCommand}" />
+			<Button Content="Active Borrowings"
+                    Command="{Binding ShowBorrowingsCommand}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Left" />
+		</StackPanel>
 
-                    <Button Content="📋  Active Borrowings"
-                            Classes="nav"
-                            Command="{Binding ShowBorrowingsCommand}" />
-                </StackPanel>
-            </Border>
-
-            <!-- Dynamic Content Area -->
-            <ContentControl Grid.Column="1"
-                            Content="{Binding CurrentViewModel}" />
-        </Grid>
-    </Grid>
+		<!-- Dynamic Content Area -->
+		<ContentControl Grid.Column="1" Content="{Binding CurrentViewModel}" />
+	</Grid>
 </Window>
