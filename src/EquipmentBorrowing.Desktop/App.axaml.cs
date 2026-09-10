@@ -65,3 +65,6 @@ public partial class App : Application
         services.AddSingleton<MainWindowViewModel>();
     }
 }
+<Application.DataTemplates>
+    <local:ViewLocator xmlns:local="using:EquipmentBorrowing.Desktop" />
+</Application.DataTemplates>
