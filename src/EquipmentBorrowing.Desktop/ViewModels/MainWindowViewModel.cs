@@ -6,27 +6,31 @@ namespace EquipmentBorrowing.Desktop.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly EquipmentViewModel _equipmentViewModel;
+    private readonly BorrowingsViewModel _borrowingsViewModel;
 
     [ObservableProperty]
     private ViewModelBase? currentViewModel;
 
-    public MainWindowViewModel(EquipmentViewModel equipmentViewModel)
+    public MainWindowViewModel(
+        EquipmentViewModel equipmentViewModel,
+        BorrowingsViewModel borrowingsViewModel)
     {
         _equipmentViewModel = equipmentViewModel;
+        _borrowingsViewModel = borrowingsViewModel;
         CurrentViewModel = _equipmentViewModel;
     }
 
     [RelayCommand]
-    private void ShowEquipment()
+    private async Task ShowEquipmentAsync()
     {
         CurrentViewModel = _equipmentViewModel;
+        await _equipmentViewModel.RefreshAllAsync();
     }
 
     [RelayCommand]
-    private void ShowBorrowings()
+    private async Task ShowBorrowingsAsync()
     {
-        // BorrowingsViewModel comes with Part F (Return Equipment) —
-        // placeholder for now so the button doesn't break navigation.
-        CurrentViewModel = null;
+        CurrentViewModel = _borrowingsViewModel;
+        await _borrowingsViewModel.LoadBorrowingsAsync();
     }
 }

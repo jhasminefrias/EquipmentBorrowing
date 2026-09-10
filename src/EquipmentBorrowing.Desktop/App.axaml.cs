@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EquipmentBorrowing.Desktop;
 
-public partial class App : Application
+public partial class App : Avalonia.Application
 {
     public IServiceProvider? Services { get; private set; }
 
@@ -40,31 +40,45 @@ public partial class App : Application
     private static void ConfigureServices(IServiceCollection services)
     {
         // Seed data for the in-memory repositories. Registered as singletons
-        // so state (e.g. an equipment item becoming unavailable) survives
-        // navigation between views instead of resetting every time.
+        // so state (e.g. an equipment item becoming unavailable or borrowed)
+        // survives navigation between views instead of resetting every time.
         var students = new[]
         {
             new Student(1, "2026-0001", "Alex Reyes", isAllowedToBorrow: true, maximumActiveBorrowings: 2),
-            new Student(2, "2026-0002", "Jamie Santos", isAllowedToBorrow: false, maximumActiveBorrowings: 2)
+            new Student(2, "2026-0002", "Jamie Santos", isAllowedToBorrow: false, maximumActiveBorrowings: 2),
+            new Student(3, "2026-0003", "Morgan Cruz", isAllowedToBorrow: true, maximumActiveBorrowings: 1)
         };
 
         var equipment = new[]
         {
             new Equipment(1, "LAB-CAM-001", "Digital Camera", isAvailable: true),
             new Equipment(2, "LAB-MIC-001", "Wireless Microphone", isAvailable: false),
-            new Equipment(3, "LAB-PROJ-001", "Portable Projector", isAvailable: true)
+            new Equipment(3, "LAB-PROJ-001", "Portable Projector", isAvailable: true),
+            new Equipment(4, "LAB-LAP-001", "Dell XPS Laptop", isAvailable: true)
         };
 
+        var initialBorrowings = new[]
+        {
+            new Borrowing(
+                1,
+                1,
+                2,
+                DateOnly.FromDateTime(DateTime.Today.AddDays(-2)),
+                DateOnly.FromDateTime(DateTime.Today.AddDays(5)))
+        };
+
+        // Repositories registered as singletons to preserve state across views
         services.AddSingleton<IStudentRepository>(new InMemoryStudentRepository(students));
         services.AddSingleton<IEquipmentRepository>(new InMemoryEquipmentRepository(equipment));
-        services.AddSingleton<IBorrowingRepository, InMemoryBorrowingRepository>();
+        services.AddSingleton<IBorrowingRepository>(new InMemoryBorrowingRepository(initialBorrowings));
 
+        // Application services
         services.AddTransient<BorrowEquipmentService>();
+        services.AddTransient<ReturnEquipmentService>();
 
+        // ViewModels
         services.AddTransient<EquipmentViewModel>();
+        services.AddTransient<BorrowingsViewModel>();
         services.AddSingleton<MainWindowViewModel>();
     }
 }
-<Application.DataTemplates>
-    <local:ViewLocator xmlns:local="using:EquipmentBorrowing.Desktop" />
-</Application.DataTemplates>
