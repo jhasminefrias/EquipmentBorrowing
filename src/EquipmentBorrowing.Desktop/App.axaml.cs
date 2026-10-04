@@ -47,10 +47,11 @@ public partial class App : Avalonia.Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        // 1. SQLite Database Configuration
+        // 1. SQLite Database Configuration with Console SQL Logging
         string dbPath = Path.Combine(AppContext.BaseDirectory, "equipment_borrowing.db");
         services.AddDbContext<EquipmentBorrowingDbContext>(options =>
-            options.UseSqlite($"Data Source={dbPath}"));
+            options.UseSqlite($"Data Source={dbPath}")
+                   .LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, Microsoft.Extensions.Logging.LogLevel.Information));
 
         // 2. EF Core Repositories (replacing In-Memory implementations)
         services.AddScoped<IStudentRepository, EfStudentRepository>();
