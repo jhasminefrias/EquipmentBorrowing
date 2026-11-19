@@ -12,5 +12,11 @@ public interface IBorrowingRepository
 
     Task<IReadOnlyList<Borrowing>> GetActiveBorrowingsAsync(CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Borrowing>> GetByStudentIdAsync(int studentId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Borrowing>> GetByEquipmentIdAsync(int equipmentId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<Borrowing>> SearchAsync(string? searchText, BorrowingStatus? statusFilter, string? sortBy, bool ascending, CancellationToken cancellationToken = default);
+
     Task UpdateAsync(Borrowing borrowing, CancellationToken cancellationToken = default);
 }

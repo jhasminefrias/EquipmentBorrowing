@@ -8,7 +8,12 @@ public class EquipmentBorrowingDbContextFactory : IDesignTimeDbContextFactory<Eq
     public EquipmentBorrowingDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<EquipmentBorrowingDbContext>();
-        optionsBuilder.UseSqlite("Data Source=equipment_borrowing.db");
+
+        // Default local development connection string (configurable via environment variable)
+        string connectionString = Environment.GetEnvironmentVariable("EQUIPMENT_DB_CONNECTION")
+            ?? "Host=localhost;Port=5432;Database=equipment_borrowing;Username=postgres;Password=frias";
+
+        optionsBuilder.UseNpgsql(connectionString);
 
         return new EquipmentBorrowingDbContext(optionsBuilder.Options);
     }

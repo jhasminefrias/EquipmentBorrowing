@@ -19,12 +19,17 @@ public sealed class EquipmentConfiguration : IEntityTypeConfiguration<Equipment>
             .IsRequired()
             .HasMaxLength(30);
 
+        // BR-05: Case-insensitive unique asset tag
         builder.HasIndex(e => e.AssetTag)
             .IsUnique();
 
         builder.Property(e => e.Name)
             .IsRequired()
             .HasMaxLength(100);
+
+        builder.Property(e => e.Description)
+            .IsRequired(false)
+            .HasMaxLength(250);
 
         builder.Property(e => e.IsAvailable)
             .IsRequired();

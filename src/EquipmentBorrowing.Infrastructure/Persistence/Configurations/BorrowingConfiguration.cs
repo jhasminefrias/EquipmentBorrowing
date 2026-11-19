@@ -33,7 +33,7 @@ public sealed class BorrowingConfiguration : IEntityTypeConfiguration<Borrowing>
         builder.Property(b => b.DateReturned)
             .IsRequired(false);
 
-        // Foreign Key Relationships
+        // Foreign keys preserving referential integrity
         builder.HasOne<Student>()
             .WithMany()
             .HasForeignKey(b => b.StudentId)
@@ -44,7 +44,11 @@ public sealed class BorrowingConfiguration : IEntityTypeConfiguration<Borrowing>
             .HasForeignKey(b => b.EquipmentId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Index for fast query of active borrowings by student
         builder.HasIndex(b => new { b.StudentId, b.Status });
+
+        // BR-10 / BR-16: PostgreSQL partial index ensuring only ONE active borrowing per equipment item
+        builder.HasIndex(b => b.EquipmentId)
+            .IsUnique()
+            .HasFilter("\"Status\" = 0");
     }
 }

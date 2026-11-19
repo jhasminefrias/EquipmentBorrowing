@@ -19,6 +19,7 @@ public sealed class StudentConfiguration : IEntityTypeConfiguration<Student>
             .IsRequired()
             .HasMaxLength(20);
 
+        // BR-01: Case-insensitive uniqueness enforcement
         builder.HasIndex(s => s.StudentNumber)
             .IsUnique();
 
@@ -26,10 +27,15 @@ public sealed class StudentConfiguration : IEntityTypeConfiguration<Student>
             .IsRequired()
             .HasMaxLength(100);
 
+        builder.Property(s => s.ContactInfo)
+            .IsRequired(false)
+            .HasMaxLength(100);
+
         builder.Property(s => s.IsAllowedToBorrow)
             .IsRequired();
 
         builder.Property(s => s.MaximumActiveBorrowings)
-            .IsRequired();
+            .IsRequired()
+            .HasDefaultValue(3);
     }
 }

@@ -25,15 +25,6 @@ public sealed class InMemoryBorrowingRepository : IBorrowingRepository
 
     public Task AddAsync(Borrowing borrowing, CancellationToken cancellationToken = default)
     {
-        if (borrowing.Id == 0)
-        {
-            borrowing.Id = _nextId++;
-        }
-        else if (borrowing.Id >= _nextId)
-        {
-            _nextId = borrowing.Id + 1;
-        }
-
         _borrowings.Add(borrowing);
         return Task.CompletedTask;
     }
@@ -48,8 +39,54 @@ public sealed class InMemoryBorrowingRepository : IBorrowingRepository
     {
         IReadOnlyList<Borrowing> active = _borrowings
             .Where(b => b.Status == BorrowingStatus.Active)
+            .OrderByDescending(b => b.DateBorrowed)
             .ToList();
         return Task.FromResult(active);
+    }
+
+    public Task<IReadOnlyList<Borrowing>> GetByStudentIdAsync(int studentId, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Borrowing> list = _borrowings
+            .Where(b => b.StudentId == studentId)
+            .OrderByDescending(b => b.DateBorrowed)
+            .ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task<IReadOnlyList<Borrowing>> GetByEquipmentIdAsync(int equipmentId, CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Borrowing> list = _borrowings
+            .Where(b => b.EquipmentId == equipmentId)
+            .OrderByDescending(b => b.DateBorrowed)
+            .ToList();
+        return Task.FromResult(list);
+    }
+
+    public Task<IReadOnlyList<Borrowing>> SearchAsync(
+        string? searchText,
+        BorrowingStatus? statusFilter,
+        string? sortBy,
+        bool ascending,
+        CancellationToken cancellationToken = default)
+    {
+        IEnumerable<Borrowing> query = _borrowings;
+
+        if (statusFilter.HasValue)
+        {
+            query = query.Where(b => b.Status == statusFilter.Value);
+        }
+
+        query = sortBy?.ToLower() switch
+        {
+            "expectedreturn" or "returndate" => ascending
+                ? query.OrderBy(b => b.ExpectedReturnDate).ThenBy(b => b.Id)
+                : query.OrderByDescending(b => b.ExpectedReturnDate).ThenByDescending(b => b.Id),
+            _ => ascending
+                ? query.OrderBy(b => b.DateBorrowed).ThenBy(b => b.Id)
+                : query.OrderByDescending(b => b.DateBorrowed).ThenByDescending(b => b.Id)
+        };
+
+        return Task.FromResult<IReadOnlyList<Borrowing>>(query.ToList());
     }
 
     public Task UpdateAsync(Borrowing borrowing, CancellationToken cancellationToken = default)

@@ -16,16 +16,34 @@ public sealed class EfStudentRepository : IStudentRepository
 
     public async Task<Student?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        // Tracking query because student borrowing privilege might be updated or verified
         return await _context.Students
             .SingleOrDefaultAsync(s => s.Id == id, cancellationToken);
     }
 
+    public async Task<Student?> GetByStudentNumberAsync(string studentNumber, CancellationToken cancellationToken = default)
+    {
+        string normalized = studentNumber.Trim().ToLower();
+        return await _context.Students
+            .SingleOrDefaultAsync(s => s.StudentNumber.ToLower() == normalized, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Student>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        // Read-only query: AsNoTracking optimizes performance by skipping change tracking
         return await _context.Students
             .AsNoTracking()
+            .OrderBy(s => s.FullName)
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task AddAsync(Student student, CancellationToken cancellationToken = default)
+    {
+        await _context.Students.AddAsync(student, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UpdateAsync(Student student, CancellationToken cancellationToken = default)
+    {
+        _context.Students.Update(student);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 }
