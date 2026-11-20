@@ -40,6 +40,7 @@ public partial class App : Avalonia.Application
             {
                 DataContext = Services.GetRequiredService<MainWindowViewModel>()
             };
+            desktop.MainWindow.Show();
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -47,20 +48,26 @@ public partial class App : Avalonia.Application
 
     private static void ConfigureServices(IServiceCollection services)
     {
-        // 1. SQLite Database Configuration with Console SQL Logging
-        string dbPath = Path.Combine(AppContext.BaseDirectory, "equipment_borrowing.db");
+        // 1. PostgreSQL Connection
+        string connectionString = Environment.GetEnvironmentVariable("EQUIPMENT_DB_CONNECTION")
+            ?? "Host=localhost;Port=5432;Database=equipment_borrowing;Username=postgres;Password=frias";
+
         services.AddDbContext<EquipmentBorrowingDbContext>(options =>
-            options.UseSqlite($"Data Source={dbPath}")
+            options.UseNpgsql(connectionString)
                    .LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, Microsoft.Extensions.Logging.LogLevel.Information));
 
-        // 2. EF Core Repositories (replacing In-Memory implementations)
+        // 2. Repositories & Unit of Work
         services.AddScoped<IStudentRepository, EfStudentRepository>();
         services.AddScoped<IEquipmentRepository, EfEquipmentRepository>();
         services.AddScoped<IBorrowingRepository, EfBorrowingRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // 3. Application Services
         services.AddTransient<BorrowEquipmentService>();
         services.AddTransient<ReturnEquipmentService>();
+        services.AddTransient<StudentManagementService>();
+        services.AddTransient<EquipmentManagementService>();
+        services.AddTransient<CheckOutMultipleEquipmentService>();
 
         // 4. ViewModels
         services.AddTransient<EquipmentViewModel>();

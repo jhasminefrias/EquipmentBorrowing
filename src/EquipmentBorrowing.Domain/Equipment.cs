@@ -2,6 +2,11 @@ namespace EquipmentBorrowing.Domain;
 
 public sealed class Equipment
 {
+    public Equipment(int id, string assetTag, string name, bool isAvailable)
+        : this(id, assetTag, name, null, isAvailable)
+    {
+    }
+
     public Equipment(int id, string assetTag, string name, string? description, bool isAvailable)
     {
         if (string.IsNullOrWhiteSpace(assetTag))

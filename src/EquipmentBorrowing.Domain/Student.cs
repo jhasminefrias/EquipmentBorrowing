@@ -2,6 +2,16 @@ namespace EquipmentBorrowing.Domain;
 
 public sealed class Student
 {
+    public Student(int id, string studentNumber, string fullName, bool isAllowedToBorrow)
+        : this(id, studentNumber, fullName, null, isAllowedToBorrow, 3)
+    {
+    }
+
+    public Student(int id, string studentNumber, string fullName, bool isAllowedToBorrow, int maximumActiveBorrowings)
+        : this(id, studentNumber, fullName, null, isAllowedToBorrow, maximumActiveBorrowings)
+    {
+    }
+
     public Student(int id, string studentNumber, string fullName, string? contactInfo, bool isAllowedToBorrow, int maximumActiveBorrowings = 3)
     {
         if (string.IsNullOrWhiteSpace(studentNumber))

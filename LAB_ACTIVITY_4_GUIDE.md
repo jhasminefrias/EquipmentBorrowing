@@ -993,7 +993,94 @@ public sealed class EquipmentManagementService
 
 ---
 
-### 5.3 Multi-Item Atomic Checkout Service (UC-06)
+### 5.3 Unit of Work & Transaction Abstraction (Clean Architecture for BR-15)
+
+In Clean Architecture, the **Application layer** is database-agnostic and cannot reference `Infrastructure` or `Microsoft.EntityFrameworkCore` directly. To perform atomic transactions cleanly:
+
+#### 1. Create `IUnitOfWork.cs` in `Application`
+**File:** `src/EquipmentBorrowing.Application/Interfaces/IUnitOfWork.cs`
+
+```csharp
+namespace EquipmentBorrowing.Application.Interfaces;
+
+public interface IUnitOfWork
+{
+    Task BeginTransactionAsync(CancellationToken cancellationToken = default);
+    Task CommitAsync(CancellationToken cancellationToken = default);
+    Task RollbackAsync(CancellationToken cancellationToken = default);
+}
+```
+
+#### 2. Create `UnitOfWork.cs` in `Infrastructure`
+**File:** `src/EquipmentBorrowing.Infrastructure/Persistence/UnitOfWork.cs`
+
+```csharp
+using EquipmentBorrowing.Application.Interfaces;
+using Microsoft.EntityFrameworkCore.Storage;
+
+namespace EquipmentBorrowing.Infrastructure.Persistence;
+
+public sealed class UnitOfWork : IUnitOfWork
+{
+    private readonly EquipmentBorrowingDbContext _context;
+    private IDbContextTransaction? _currentTransaction;
+
+    public UnitOfWork(EquipmentBorrowingDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        if (_currentTransaction is not null)
+        {
+            return;
+        }
+
+        _currentTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+    }
+
+    public async Task CommitAsync(CancellationToken cancellationToken = default)
+    {
+        if (_currentTransaction is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _currentTransaction.CommitAsync(cancellationToken);
+        }
+        finally
+        {
+            await _currentTransaction.DisposeAsync();
+            _currentTransaction = null;
+        }
+    }
+
+    public async Task RollbackAsync(CancellationToken cancellationToken = default)
+    {
+        if (_currentTransaction is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _currentTransaction.RollbackAsync(cancellationToken);
+        }
+        finally
+        {
+            await _currentTransaction.DisposeAsync();
+            _currentTransaction = null;
+        }
+    }
+}
+```
+
+---
+
+### 5.4 Multi-Item Atomic Checkout Service (UC-06 / BR-12 & BR-15)
 **File:** `src/EquipmentBorrowing.Application/Services/CheckOutMultipleEquipmentService.cs`
 
 Per **BR-12 & BR-15**, checkout of at least two items must execute **atomically** in a database transaction (`BeginTransactionAsync`). Either all items are issued and marked unavailable, or if anything fails, the entire transaction rolls back with zero partial writes:
@@ -1001,8 +1088,6 @@ Per **BR-12 & BR-15**, checkout of at least two items must execute **atomically*
 ```csharp
 using EquipmentBorrowing.Application.Interfaces;
 using EquipmentBorrowing.Domain;
-using EquipmentBorrowing.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 namespace EquipmentBorrowing.Application.Services;
 
@@ -1019,18 +1104,21 @@ public sealed record CheckOutMultipleResult(
 
 public sealed class CheckOutMultipleEquipmentService
 {
-    private readonly EquipmentBorrowingDbContext _context;
     private readonly IStudentRepository _studentRepository;
+    private readonly IEquipmentRepository _equipmentRepository;
     private readonly IBorrowingRepository _borrowingRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public CheckOutMultipleEquipmentService(
-        EquipmentBorrowingDbContext context,
         IStudentRepository studentRepository,
-        IBorrowingRepository borrowingRepository)
+        IEquipmentRepository equipmentRepository,
+        IBorrowingRepository borrowingRepository,
+        IUnitOfWork unitOfWork)
     {
-        _context = context;
         _studentRepository = studentRepository;
+        _equipmentRepository = equipmentRepository;
         _borrowingRepository = borrowingRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<CheckOutMultipleResult> CheckOutAsync(
@@ -1073,7 +1161,7 @@ public sealed class CheckOutMultipleEquipmentService
         }
 
         // 5. BR-15: Open an explicit atomic database transaction
-        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
         try
         {
             var createdBorrowings = new List<Borrowing>();
@@ -1081,22 +1169,22 @@ public sealed class CheckOutMultipleEquipmentService
             foreach (int equipmentId in distinctItemIds)
             {
                 // Revalidate current availability inside transaction boundary
-                Equipment? item = await _context.Equipment
-                    .SingleOrDefaultAsync(e => e.Id == equipmentId, cancellationToken);
+                Equipment? item = await _equipmentRepository.GetByIdAsync(equipmentId, cancellationToken);
 
                 if (item is null)
                 {
-                    await transaction.RollbackAsync(cancellationToken);
+                    await _unitOfWork.RollbackAsync(cancellationToken);
                     return new CheckOutMultipleResult(false, $"Equipment item with ID {equipmentId} does not exist.", []);
                 }
 
                 if (!item.IsAvailable)
                 {
-                    await transaction.RollbackAsync(cancellationToken);
+                    await _unitOfWork.RollbackAsync(cancellationToken);
                     return new CheckOutMultipleResult(false, $"Equipment '{item.Name}' [{item.AssetTag}] is already borrowed/unavailable.", []);
                 }
 
                 item.MarkBorrowed();
+                await _equipmentRepository.UpdateAsync(item, cancellationToken);
 
                 var borrowing = new Borrowing(
                     0,
@@ -1105,12 +1193,11 @@ public sealed class CheckOutMultipleEquipmentService
                     request.DateBorrowed,
                     request.ExpectedReturnDate);
 
-                await _context.Borrowings.AddAsync(borrowing, cancellationToken);
+                await _borrowingRepository.AddAsync(borrowing, cancellationToken);
                 createdBorrowings.Add(borrowing);
             }
 
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
 
             return new CheckOutMultipleResult(
                 true,
@@ -1119,7 +1206,7 @@ public sealed class CheckOutMultipleEquipmentService
         }
         catch (Exception ex)
         {
-            await transaction.RollbackAsync(cancellationToken);
+            await _unitOfWork.RollbackAsync(cancellationToken);
             return new CheckOutMultipleResult(false, $"Database transaction failed and was rolled back: {ex.Message}", []);
         }
     }
@@ -1161,10 +1248,11 @@ private static void ConfigureServices(IServiceCollection services)
     services.AddDbContext<EquipmentBorrowingDbContext>(options =>
         options.UseNpgsql(connectionString));
 
-    // 2. Repositories
+    // 2. Repositories & Unit of Work
     services.AddScoped<IStudentRepository, EfStudentRepository>();
     services.AddScoped<IEquipmentRepository, EfEquipmentRepository>();
     services.AddScoped<IBorrowingRepository, EfBorrowingRepository>();
+    services.AddScoped<IUnitOfWork, UnitOfWork>();
 
     // 3. Application Services
     services.AddTransient<BorrowEquipmentService>();
