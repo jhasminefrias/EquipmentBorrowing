@@ -58,8 +58,6 @@ public partial class BorrowingsViewModel : ViewModelBase
         _equipmentRepository = equipmentRepository;
         _studentRepository = studentRepository;
         _returnEquipmentService = returnEquipmentService;
-
-        _ = LoadBorrowingsAsync();
     }
 
     [RelayCommand]
